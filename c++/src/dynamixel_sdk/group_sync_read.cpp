@@ -202,7 +202,6 @@ bool GroupSyncRead::getMultipleWordsData(uint8_t id, uint16_t address, uint16_t 
 
     data->clear();
     for(int i = 0; i < data_length;i++){ //todo maybe memcpy for performance
-        //ROS_WARN("id: %d, len: %d, data: %d", id, data_length, data_list_[id][address - start_address_ + i] );
         data->push_back(data_list_[id][address - start_address_ + i]);
     }
 
