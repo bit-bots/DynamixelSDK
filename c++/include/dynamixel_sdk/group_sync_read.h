@@ -27,6 +27,7 @@
 #include <vector>
 #include "port_handler.h"
 #include "packet_handler.h"
+#include "ros/ros.h"
 
 namespace dynamixel
 {

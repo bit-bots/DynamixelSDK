@@ -139,8 +139,10 @@ int GroupSyncRead::rxPacket()
     uint8_t id = id_list_[i];
 
     result = ph_->readRx(port_, id, data_length_, data_list_[id], error_list_[id]);
-    if (result != COMM_SUCCESS)
+    if (result != COMM_SUCCESS){
+      ROS_ERROR("No status from id: %d", id);
       return result;
+    }
   }
 
   if (result == COMM_SUCCESS)

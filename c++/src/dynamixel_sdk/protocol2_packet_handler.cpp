@@ -427,7 +427,7 @@ int Protocol2PacketHandler::rxPacket(PortHandler *port, uint8_t *rxpacket)
 // NOT for BulkRead / SyncRead instruction
 int Protocol2PacketHandler::txRxPacket(PortHandler *port, uint8_t *txpacket, uint8_t *rxpacket, uint8_t *error)
 {
-  int result = COMM_TX_FAIL;
+  int result = COMM_TX_FAIL; 
 
   // tx packet
   result = txPacket(port, txpacket);
