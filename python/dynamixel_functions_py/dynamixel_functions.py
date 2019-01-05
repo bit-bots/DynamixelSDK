@@ -27,8 +27,8 @@ from ctypes import cdll
 from rospkg import RosPack
 rp = RosPack()
 path = rp.get_path('dynamixel_sdk') + "/.."
-#dxl_lib = cdll.LoadLibrary(path + "/c/build/linux64/libdxl_x64_c.so")     # for linux 64bit
-dxl_lib = cdll.LoadLibrary(path + "/c/build/linux_sbc/libdxl_sbc_c.so")   # for SBC linux
+dxl_lib = cdll.LoadLibrary(path + "/c/build/linux64/libdxl_x64_c.so")     # for linux 64bit
+#dxl_lib = cdll.LoadLibrary(path + "/c/build/linux_sbc/libdxl_sbc_c.so")   # for SBC linux
 # dxl_lib = cdll.LoadLibrary("../../c/build/mac/libdxl_mac_c.dylib")      # for Mac OS
 
 # port_handler
