@@ -39,24 +39,24 @@
 #include "dynamixel_sdk.h"                                  // Uses Dynamixel SDK library
 
 // Control table address
-#define ADDR_PRO_TORQUE_ENABLE          562                 // Control table address is different in Dynamixel model
-#define ADDR_PRO_GOAL_POSITION          596
-#define ADDR_PRO_PRESENT_POSITION       611
+#define ADDR_PRO_TORQUE_ENABLE          64                 // Control table address is different in Dynamixel model
+#define ADDR_PRO_GOAL_POSITION          116
+#define ADDR_PRO_PRESENT_POSITION       132
 
 // Protocol version
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the Dynamixel
 
 // Default setting
 #define DXL1_ID                         1                   // Dynamixel#1 ID: 1
-#define DXL2_ID                         2                   // Dynamixel#2 ID: 2
-#define BAUDRATE                        57600
-#define DEVICENAME1                     "/dev/ttyUSB0"      // Check which port is being used on your controller
-#define DEVICENAME2                     "/dev/ttyUSB1"      // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
+#define DXL2_ID                         6                   // Dynamixel#2 ID: 2
+#define BAUDRATE                        2000000
+#define DEVICENAME1                     "/dev/ttyUSB4"      // Check which port is being used on your controller
+#define DEVICENAME2                     "/dev/ttyUSB5"      // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
 
 #define TORQUE_ENABLE                   1                   // Value for enabling the torque
 #define TORQUE_DISABLE                  0                   // Value for disabling the torque
-#define DXL_MINIMUM_POSITION_VALUE      -150000             // Dynamixel will rotate between this value
-#define DXL_MAXIMUM_POSITION_VALUE      150000              // and this value (note that the Dynamixel would not move when the position value is out of movable range. Check e-manual about the range of the Dynamixel you use.)
+#define DXL_MINIMUM_POSITION_VALUE      200             // Dynamixel will rotate between this value
+#define DXL_MAXIMUM_POSITION_VALUE      400              // and this value (note that the Dynamixel would not move when the position value is out of movable range. Check e-manual about the range of the Dynamixel you use.)
 #define DXL_MOVING_STATUS_THRESHOLD     20                  // Dynamixel moving status threshold
 
 #define ESC_ASCII_VALUE                 0x1b
@@ -214,12 +214,12 @@ int main()
 
   while(1)
   {
-    printf("Press any key to continue! (or press ESC to quit!)\n");
+    /*printf("Press any key to continue! (or press ESC to quit!)\n");
     if (getch() == ESC_ASCII_VALUE)
       break;
-
+    */
     // Write Dynamixel#1 goal position
-    dxl_comm_result = packetHandler->write4ByteTxRx(portHandler1, DXL1_ID, ADDR_PRO_GOAL_POSITION, dxl_goal_position[index], &dxl_error);
+    /*dxl_comm_result = packetHandler->write4ByteTxRx(portHandler1, DXL1_ID, ADDR_PRO_GOAL_POSITION, dxl_goal_position[index], &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
       printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
@@ -238,10 +238,10 @@ int main()
     else if (dxl_error != 0)
     {
       printf("%s\n", packetHandler->getRxPacketError(dxl_error));
-    }
+    }*/
 
-    do
-    {
+    //do
+    //{
       // Read Dynamixel#1 present position
       dxl_comm_result = packetHandler->read4ByteTxRx(portHandler1, DXL1_ID, ADDR_PRO_PRESENT_POSITION, (uint32_t*)&dxl1_present_position, &dxl_error);
       if (dxl_comm_result != COMM_SUCCESS)
@@ -264,9 +264,9 @@ int main()
         printf("%s\n", packetHandler->getRxPacketError(dxl_error));
       }
 
-      printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t[ID:%03d] GoalPos:%03d  PresPos:%03d\n", DXL1_ID, dxl_goal_position[index], dxl1_present_position, DXL2_ID, dxl_goal_position[index], dxl2_present_position);
+      //printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t[ID:%03d] GoalPos:%03d  PresPos:%03d\n", DXL1_ID, dxl_goal_position[index], dxl1_present_position, DXL2_ID, dxl_goal_position[index], dxl2_present_position);
 
-    }while((abs(dxl_goal_position[index] - dxl1_present_position) > DXL_MOVING_STATUS_THRESHOLD) || (abs(dxl_goal_position[index] - dxl2_present_position) > DXL_MOVING_STATUS_THRESHOLD));
+    //}while((abs(dxl_goal_position[index] - dxl1_present_position) > DXL_MOVING_STATUS_THRESHOLD) || (abs(dxl_goal_position[index] - dxl2_present_position) > DXL_MOVING_STATUS_THRESHOLD));
 
     // Change goal position
     if (index == 0)

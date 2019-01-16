@@ -64,6 +64,15 @@ endif()
 add_dependencies(dynamixel_sdk ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(dynamixel_sdk ${catkin_LIBRARIES})
 
+add_executable(multi_bus example/protocol2.0/multi_port/multi_port.cpp)
+add_dependencies(multi_bus ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(multi_bus dynamixel_sdk)
+
+add_executable(sync example/protocol2.0/sync_read_write/sync_read_write.cpp)
+add_dependencies(sync ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(sync dynamixel_sdk)
+
+
 ################################################################################
 # Install
 ################################################################################
