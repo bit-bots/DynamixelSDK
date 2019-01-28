@@ -27,6 +27,11 @@ catkin_package(
   LIBRARIES dynamixel_sdk
 )
 
+
+set (CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+
 ################################################################################
 # Build
 ################################################################################
@@ -60,6 +65,7 @@ else()
     src/dynamixel_sdk/port_handler_linux.cpp
   )
 endif()
+
 
 add_dependencies(dynamixel_sdk ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(dynamixel_sdk ${catkin_LIBRARIES})

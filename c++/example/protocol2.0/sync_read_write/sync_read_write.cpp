@@ -32,6 +32,7 @@
 #elif defined(_WIN32) || defined(_WIN64)
 #include <conio.h>
 #endif
+#include <chrono>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -123,28 +124,28 @@ int main(int argc, char* argv[])
   std::vector<int> ids;
 
   if(atoi(argv[1]) == 1){
-    DEVICENAME = "/dev/ttyUSB4";
+    DEVICENAME = "/dev/ttyUSB0";
     ids.push_back(1);
     ids.push_back(2);
     ids.push_back(3);
     ids.push_back(4);
     ids.push_back(5);
   }else if(atoi(argv[1]) == 2){
-    DEVICENAME = "/dev/ttyUSB5";
+    DEVICENAME = "/dev/ttyUSB1";
     ids.push_back(6);
     ids.push_back(7);
     ids.push_back(8);
     ids.push_back(9);
     ids.push_back(10);
   }else if(atoi(argv[1]) == 3){
-    DEVICENAME = "/dev/ttyUSB6";
+    DEVICENAME = "/dev/ttyUSB2";
     ids.push_back(11);
     ids.push_back(12);
     ids.push_back(13);
     ids.push_back(14);
     ids.push_back(15);
   }else if(atoi(argv[1]) == 4){
-    DEVICENAME = "/dev/ttyUSB7";
+    DEVICENAME = "/dev/ttyUSB3";
     ids.push_back(16);    
     ids.push_back(18);
     ids.push_back(19);
@@ -179,6 +180,7 @@ int main(int argc, char* argv[])
   uint8_t param_goal_position[4];
   int32_t dxl1_present_position = 0, dxl2_present_position = 0;                         // Present position
 
+
   // Open port
   if (portHandler->openPort())
   {
@@ -192,7 +194,6 @@ int main(int argc, char* argv[])
     return 0;
   }
 
-  printf("test1-");
 
   // Set port baudrate
   if (portHandler->setBaudRate(BAUDRATE))
@@ -206,7 +207,6 @@ int main(int argc, char* argv[])
     getch();
     return 0;
   }
-  printf("test12\n");
 
   // Enable Dynamixel#1 Torque
   /*dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL1_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
@@ -223,7 +223,6 @@ int main(int argc, char* argv[])
     printf("Dynamixel#%d has been successfully connected \n", DXL1_ID);
   }*/
 
-  printf("test0 \n");
   // Add parameter storage for Dynamixel#1 present position value
   for(int i = 0; i < ids.size(); i++){
     dxl_addparam_result = groupSyncRead.addParam(ids[i]);
@@ -238,17 +237,18 @@ int main(int argc, char* argv[])
     param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[index]));
     param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[index]));
 
-    // Add Dynamixel#1 goal position value to the Syncwrite storage
-    printf("ahoi\n");
-    dxl_addparam_result = groupSyncWrite.addParam(ids[i], param_goal_position);
-        printf("adieu\n");
+    // Add Dynamixel#1 goal position value to the Syncwrite storage    
+    dxl_addparam_result = groupSyncWrite.addParam(ids[i], param_goal_position);  
     if (dxl_addparam_result != true)
     {
       fprintf(stderr, "[ID:%03d] groupSyncWrite addparam failed", ids[i]);
       return 0;
     }
   }
-  printf("test\n");
+  
+  int number_packages = 0;
+  std::chrono::time_point<std::chrono::steady_clock> start_time = std::chrono::steady_clock::now();
+
   while(1)
   {
     // Allocate goal position value into byte array
@@ -271,9 +271,9 @@ int main(int argc, char* argv[])
     {
       printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
     }
-    /*else if (groupSyncRead.getError(DXL1_ID, &dxl_error))
+    /*else if (groupSyncRead.getError(ids[i], &dxl_error))
     {
-      printf("[ID:%03d] %s\n", DXL1_ID, packetHandler->getRxPacketError(dxl_error));
+      printf("[ID:%03d] %s\n", ids[i], packetHandler->getRxPacketError(dxl_error));
     }*/
       
 
@@ -286,6 +286,7 @@ int main(int argc, char* argv[])
         return 0;
       }
     }
+    number_packages++;
 
       // Get Dynamixel#1 present position value
       //dxl1_present_position = groupSyncRead.getData(DXL1_ID, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
@@ -295,18 +296,14 @@ int main(int argc, char* argv[])
 
       //printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t[ID:%03d] GoalPos:%03d  PresPos:%03d\n", DXL1_ID, dxl_goal_position[index], dxl1_present_position, DXL2_ID, dxl_goal_position[index], dxl2_present_position);
 
-    //}while((abs(dxl_goal_position[index] - dxl1_present_position) > DXL_MOVING_STATUS_THRESHOLD) || (abs(dxl_goal_position[index] - dxl2_present_position) > DXL_MOVING_STATUS_THRESHOLD));
-
-    // Change goal position
-    if (index == 0)
-    {
-      index = 1;
-    }
-    else
-    {
-      index = 0;
-    }
   }
+
+  std::chrono::time_point<std::chrono::steady_clock> stop_time = std::chrono::steady_clock::now();
+  auto time_diff_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time);
+  double dt = time_diff_ms.count() / 1000.0;        
+  double rate = number_packages / dt;
+  printf("Update rate bus %d was %f", atoi(argv[1]), rate);
+
 
   // Disable Dynamixel#1 Torque
   /*dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL1_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_DISABLE, &dxl_error);
@@ -328,7 +325,7 @@ int main(int argc, char* argv[])
   else if (dxl_error != 0)
   {
     printf("%s\n", packetHandler->getRxPacketError(dxl_error));
-  }*/
+  }*/  
 
   // Close port
   portHandler->closePort();
