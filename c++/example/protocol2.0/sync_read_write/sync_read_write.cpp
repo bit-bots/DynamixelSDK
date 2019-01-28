@@ -55,7 +55,7 @@
 // Default setting
 //#define DXL1_ID                         1                   // Dynamixel#1 ID: 1
 //#define DXL2_ID                         2                   // Dynamixel#2 ID: 2
-#define BAUDRATE                        2000000
+#define BAUDRATE                        4000000
 //#define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
 
@@ -247,7 +247,8 @@ int main(int argc, char* argv[])
   }
   
   int number_packages = 0;
-  std::chrono::time_point<std::chrono::steady_clock> start_time = std::chrono::steady_clock::now();
+  std::chrono::time_point<std::chrono::steady_clock> last_time = std::chrono::steady_clock::now();
+  std::chrono::time_point<std::chrono::steady_clock> current_time = std::chrono::steady_clock::now();
 
   while(1)
   {
@@ -296,13 +297,17 @@ int main(int argc, char* argv[])
 
       //printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t[ID:%03d] GoalPos:%03d  PresPos:%03d\n", DXL1_ID, dxl_goal_position[index], dxl1_present_position, DXL2_ID, dxl_goal_position[index], dxl2_present_position);
 
+    if(number_packages > 10000){
+      number_packages = 0;
+      current_time = std::chrono::steady_clock::now();
+      auto time_diff_ms = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time);
+      double dt = time_diff_ms.count() / 1000.0;        
+      double rate = number_packages / dt;
+      printf("Update rate bus %d was %f", atoi(argv[1]), rate);
+    }
   }
 
-  std::chrono::time_point<std::chrono::steady_clock> stop_time = std::chrono::steady_clock::now();
-  auto time_diff_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time);
-  double dt = time_diff_ms.count() / 1000.0;        
-  double rate = number_packages / dt;
-  printf("Update rate bus %d was %f", atoi(argv[1]), rate);
+
 
 
   // Disable Dynamixel#1 Torque
