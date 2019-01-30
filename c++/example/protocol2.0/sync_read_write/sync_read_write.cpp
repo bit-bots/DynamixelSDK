@@ -123,6 +123,7 @@ int main(int argc, char* argv[])
   const char* DEVICENAME;
   std::vector<int> ids;
 
+  /*
   if(atoi(argv[1]) == 1){
     DEVICENAME = "/dev/ttyUSB0";
     ids.push_back(1);
@@ -147,9 +148,62 @@ int main(int argc, char* argv[])
   }else if(atoi(argv[1]) == 4){
     DEVICENAME = "/dev/ttyUSB3";
     ids.push_back(16);    
+    ids.push_back(17);
     ids.push_back(18);
     ids.push_back(19);
     ids.push_back(20);    
+  }*/
+
+  /*
+  if(atoi(argv[1]) == 1){
+    DEVICENAME = "/dev/ttyUSB0";
+    ids.push_back(1);
+    ids.push_back(2);
+    ids.push_back(3);
+    ids.push_back(4);
+    ids.push_back(5);
+    ids.push_back(6);
+    ids.push_back(7);
+    ids.push_back(8);
+    ids.push_back(9);
+    ids.push_back(10);
+    ids.push_back(11);
+    ids.push_back(12);
+    ids.push_back(13);
+    ids.push_back(14);
+    ids.push_back(15);
+    ids.push_back(16);
+    ids.push_back(17);
+    ids.push_back(18);
+    ids.push_back(19);
+    ids.push_back(20);
+  }*/
+
+  if(atoi(argv[1]) == 1){
+    DEVICENAME = "/dev/ttyUSB0";
+    ids.push_back(1);
+    ids.push_back(2);
+    ids.push_back(3);
+    ids.push_back(4);
+    ids.push_back(5);
+    ids.push_back(6);
+    ids.push_back(7);
+    ids.push_back(8);
+    ids.push_back(9);
+    ids.push_back(10);
+  }
+  if(atoi(argv[1]) == 2){
+    DEVICENAME = "/dev/ttyUSB1";
+    ids.push_back(11);
+    ids.push_back(12);
+    ids.push_back(13);
+    ids.push_back(14);
+    ids.push_back(15);
+    ids.push_back(16);
+    ids.push_back(17);
+    ids.push_back(18);
+    ids.push_back(19);
+    ids.push_back(20);
   }
 
   
@@ -284,7 +338,7 @@ int main(int argc, char* argv[])
       if (dxl_getdata_result != true)
       {
         fprintf(stderr, "[ID:%03d] groupSyncRead getdata failed", ids[i]);
-        return 0;
+        //return 0;
       }
     }
     number_packages++;
@@ -298,12 +352,13 @@ int main(int argc, char* argv[])
       //printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t[ID:%03d] GoalPos:%03d  PresPos:%03d\n", DXL1_ID, dxl_goal_position[index], dxl1_present_position, DXL2_ID, dxl_goal_position[index], dxl2_present_position);
 
     if(number_packages > 10000){
-      number_packages = 0;
       current_time = std::chrono::steady_clock::now();
       auto time_diff_ms = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time);
+      last_time = current_time;
       double dt = time_diff_ms.count() / 1000.0;        
       double rate = number_packages / dt;
-      printf("Update rate bus %d was %f", atoi(argv[1]), rate);
+      printf("Update rate bus %d was %f \n", atoi(argv[1]), rate);
+      number_packages = 0;
     }
   }
 
