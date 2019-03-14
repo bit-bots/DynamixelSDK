@@ -36,6 +36,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "dynamixel_sdk.h"                                  // Uses Dynamixel SDK library
                                 // Uses Dynamixel SDK library
@@ -154,22 +155,22 @@ int main(int argc, char* argv[])
     ids.push_back(20);    
   }*/
 
-  /*
+  
   if(atoi(argv[1]) == 1){
     DEVICENAME = "/dev/ttyUSB0";
-    ids.push_back(1);
-    ids.push_back(2);
-    ids.push_back(3);
-    ids.push_back(4);
-    ids.push_back(5);
-    ids.push_back(6);
-    ids.push_back(7);
     ids.push_back(8);
     ids.push_back(9);
     ids.push_back(10);
     ids.push_back(11);
     ids.push_back(12);
     ids.push_back(13);
+    ids.push_back(1);
+    ids.push_back(2);
+    ids.push_back(3);
+    ids.push_back(4);
+    ids.push_back(5);
+    ids.push_back(6);
+    ids.push_back(7);    
     ids.push_back(14);
     ids.push_back(15);
     ids.push_back(16);
@@ -177,8 +178,8 @@ int main(int argc, char* argv[])
     ids.push_back(18);
     ids.push_back(19);
     ids.push_back(20);
-  }*/
-
+  }
+/*
   if(atoi(argv[1]) == 1){
     DEVICENAME = "/dev/ttyUSB0";
     ids.push_back(1);
@@ -205,7 +206,7 @@ int main(int argc, char* argv[])
     ids.push_back(19);
     ids.push_back(20);
   }
-
+*/
   
 
   // Initialize PortHandler instance
@@ -317,6 +318,7 @@ int main(int argc, char* argv[])
     dxl_comm_result = groupSyncWrite.txPacket();
     if (dxl_comm_result != COMM_SUCCESS) printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
 
+    //usleep(1150);
     // Clear syncwrite parameter storage
     //groupSyncWrite.clearParam();
   
@@ -331,17 +333,21 @@ int main(int argc, char* argv[])
       printf("[ID:%03d] %s\n", ids[i], packetHandler->getRxPacketError(dxl_error));
     }*/
       
-
+    bool correct = true;
     for(int i = 0; i < ids.size(); i++){
       // Check if groupsyncread data of Dynamixel#1 is available
       dxl_getdata_result = groupSyncRead.isAvailable(ids[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+      
       if (dxl_getdata_result != true)
       {
-        fprintf(stderr, "[ID:%03d] groupSyncRead getdata failed", ids[i]);
+        correct = false;
+        //fprintf(stderr, "[ID:%03d] groupSyncRead getdata failed", ids[i]);
         //return 0;
       }
     }
-    number_packages++;
+    if(correct){
+      number_packages++;
+    }
 
       // Get Dynamixel#1 present position value
       //dxl1_present_position = groupSyncRead.getData(DXL1_ID, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
@@ -351,7 +357,7 @@ int main(int argc, char* argv[])
 
       //printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t[ID:%03d] GoalPos:%03d  PresPos:%03d\n", DXL1_ID, dxl_goal_position[index], dxl1_present_position, DXL2_ID, dxl_goal_position[index], dxl2_present_position);
 
-    if(number_packages > 10000){
+    if(number_packages > 100){
       current_time = std::chrono::steady_clock::now();
       auto time_diff_ms = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time);
       last_time = current_time;
@@ -360,6 +366,7 @@ int main(int argc, char* argv[])
       printf("Update rate bus %d was %f \n", atoi(argv[1]), rate);
       number_packages = 0;
     }
+    //usleep(1500);
   }
 
 
