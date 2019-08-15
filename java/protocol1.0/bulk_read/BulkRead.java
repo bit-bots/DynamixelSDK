@@ -22,7 +22,7 @@
 //
 // Available Dynamixel model on this example : MX or X series set to Protocol 1.0
 // This example is designed for using two Dynamixel MX-28, and an USB2DYNAMIXEL.
-// To use another Dynamixel model, such as X series, see their details in E-Manual(support.robotis.com) and edit below variables yourself.
+// To use another Dynamixel model, such as X series, see their details in E-Manual(emanual.robotis.com) and edit below variables yourself.
 // Be sure that Dynamixel MX properties are already set as %% ID : 1 / Baudnum : 34 (Baudrate : 57600)
 //
 
@@ -173,22 +173,22 @@ public class BulkRead
       dynamixel.write2ByteTxRx(port_num, PROTOCOL_VERSION, DXL1_ID, ADDR_MX_GOAL_POSITION, dxl_goal_position[index]);
       if ((dxl_comm_result = dynamixel.getLastTxRxResult(port_num, PROTOCOL_VERSION)) != COMM_SUCCESS)
       {
-        dynamixel.printTxRxResult(PROTOCOL_VERSION, dxl_comm_result);
+        printf("%s\n", dynamixel.getTxRxResult(PROTOCOL_VERSION, dxl_comm_result));
       }
       else if ((dxl_error = dynamixel.getLastRxPacketError(port_num, PROTOCOL_VERSION)) != 0)
       {
-        dynamixel.printRxPacketError(PROTOCOL_VERSION, dxl_error);
+         printf("%s\n", dynamixel.getRxPacketError(PROTOCOL_VERSION, dxl_error));
       }
 
       // Write Dynamixel#2 goal position
       dynamixel.write2ByteTxRx(port_num, PROTOCOL_VERSION, DXL2_ID, ADDR_MX_GOAL_POSITION, dxl_goal_position[index]);
       if ((dxl_comm_result = dynamixel.getLastTxRxResult(port_num, PROTOCOL_VERSION)) != COMM_SUCCESS)
       {
-        dynamixel.printTxRxResult(PROTOCOL_VERSION, dxl_comm_result);
+         printf("%s\n", dynamixel.getTxRxResult(PROTOCOL_VERSION, dxl_comm_result));
       }
       else if ((dxl_error = dynamixel.getLastRxPacketError(port_num, PROTOCOL_VERSION)) != 0)
       {
-        dynamixel.printRxPacketError(PROTOCOL_VERSION, dxl_error);
+         printf("%s\n", dynamixel.getRxPacketError(PROTOCOL_VERSION, dxl_error));
       }
 
       do
