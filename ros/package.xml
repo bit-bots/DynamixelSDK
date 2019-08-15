@@ -19,4 +19,10 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>roscpp</depend>
   <depend>rospy</depend>
+  <export>
+    <bitbots_documentation>
+      <status>unknown</status>
+      <language>c++</language>
+    </bitbots_documentation>
+  </export>
 </package>
