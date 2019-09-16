@@ -17,11 +17,14 @@
 /* Author: Ryu Woon Jung (Leon) */
 
 #if defined(__linux__)
+#include <unistd.h>
 #include "protocol2_packet_handler.h"
 #elif defined(__APPLE__)
+#include <unistd.h>
 #include "protocol2_packet_handler.h"
 #elif defined(_WIN32) || defined(_WIN64)
 #define WINDLLEXPORT
+#include <Windows.h>
 #include "protocol2_packet_handler.h"
 #endif
 
@@ -29,8 +32,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define TXPACKET_MAX_LEN    (4*1024)
-#define RXPACKET_MAX_LEN    (4*1024)
+#define TXPACKET_MAX_LEN    (1*1024)
+#define RXPACKET_MAX_LEN    (1*1024)
 
 ///////////////// for Protocol 2.0 Packet /////////////////
 #define PKT_HEADER0             0
@@ -91,12 +94,6 @@ const char *getTxRxResult2(int result)
   }
 }
 
-void printTxRxResult2(int result)
-{
-  printf("This function is deprecated. Use getTxRxResult instead\n");
-  printf("%s\n", getTxRxResult2(result));
-}
-
 const char *getRxPacketError2(uint8_t error)
 {
   int not_alert_error;
@@ -136,12 +133,6 @@ const char *getRxPacketError2(uint8_t error)
   }
 }
 
-void printRxPacketError2(uint8_t error)
-{
-  printf("This function is deprecated. Use getRxPacketError instead\n");
-  printf("%s\n", getRxPacketError2(error));
-}
-
 int getLastTxRxResult2(int port_num)
 {
   return packetData[port_num].communication_result;
@@ -154,6 +145,11 @@ uint8_t getLastRxPacketError2(int port_num)
 void setDataWrite2(int port_num, uint16_t data_length, uint16_t data_pos, uint32_t data)
 {
   packetData[port_num].data_write = (uint8_t *)realloc(packetData[port_num].data_write, (data_pos + data_length) * sizeof(uint8_t));
+  if (packetData[port_num].data_write == NULL)
+  {
+    printf("[Set Data Write] memory allocation failed... \n");
+    return;
+  }
 
   switch (data_length)
   {
@@ -174,7 +170,7 @@ void setDataWrite2(int port_num, uint16_t data_length, uint16_t data_pos, uint32
       break;
 
     default:
-      printf("[Set Data Write] failed... ");
+      printf("[Set Data Write] failed... \n");
       break;
   }
 }
@@ -193,7 +189,7 @@ uint32_t getDataRead2(int port_num, uint16_t data_length, uint16_t data_pos)
       , DXL_MAKEWORD(packetData[port_num].data_read[data_pos + 2], packetData[port_num].data_read[data_pos + 3]));
 
   default:
-    printf("[Set Data Read] failed... ");
+    printf("[Set Data Read] failed... \n");
     return 0;
   }
 }
@@ -201,7 +197,7 @@ uint32_t getDataRead2(int port_num, uint16_t data_length, uint16_t data_pos)
 unsigned short updateCRC(uint16_t crc_accum, uint8_t *data_blk_ptr, uint16_t data_blk_size)
 {
   uint16_t i, j;
-  uint16_t crc_table[256] = { 0x0000,
+  static const uint16_t crc_table[256] = { 0x0000,
     0x8005, 0x800F, 0x000A, 0x801B, 0x001E, 0x0014, 0x8011,
     0x8033, 0x0036, 0x003C, 0x8039, 0x0028, 0x802D, 0x8027,
     0x0022, 0x8063, 0x0066, 0x006C, 0x8069, 0x0078, 0x807D,
@@ -251,42 +247,52 @@ unsigned short updateCRC(uint16_t crc_accum, uint8_t *data_blk_ptr, uint16_t dat
 
 void addStuffing(uint8_t *packet)
 {
-  uint16_t s;
-
-  uint16_t i = 0;
-  int index = 0;
+  uint8_t *packet_ptr;
+  uint16_t i;
+  uint16_t packet_length_before_crc;
+  uint16_t out_index, in_index;
+  
   int packet_length_in = DXL_MAKEWORD(packet[PKT_LENGTH_L], packet[PKT_LENGTH_H]);
   int packet_length_out = packet_length_in;
-  uint8_t temp[TXPACKET_MAX_LEN] = { 0 };
-
-  for (s = PKT_HEADER0; s <= PKT_LENGTH_H; s++)
+  
+  if (packet_length_in < 8) // INSTRUCTION, ADDR_L, ADDR_H, CRC16_L, CRC16_H + FF FF FD
+    return;
+  
+  packet_length_before_crc = packet_length_in - 2;
+  for (i = 3; i < packet_length_before_crc; i++)
   {
-    temp[s] = packet[s]; // FF FF FD XX ID LEN_L LEN_H
-  }
-
-  index = PKT_INSTRUCTION;
-  for (i = 0; i < packet_length_in - 2; i++)  // except CRC
-  {
-    temp[index++] = packet[i + PKT_INSTRUCTION];
-    if (packet[i + PKT_INSTRUCTION] == 0xFD && packet[i + PKT_INSTRUCTION - 1] == 0xFF && packet[i + PKT_INSTRUCTION - 2] == 0xFF)
-    {   // FF FF FD
-      temp[index++] = 0xFD;
+    packet_ptr = &packet[i+PKT_INSTRUCTION-2];
+    if (packet_ptr[0] == 0xFF && packet_ptr[1] == 0xFF && packet_ptr[2] == 0xFD)
       packet_length_out++;
-    }
   }
-  temp[index++] = packet[PKT_INSTRUCTION + packet_length_in - 2];
-  temp[index++] = packet[PKT_INSTRUCTION + packet_length_in - 1];
-
-  if (packet_length_in != packet_length_out)
-    packet = (uint8_t *)realloc(packet, index * sizeof(uint8_t));
-
-  for (s = 0; s < index; s++)
+  
+  if (packet_length_in == packet_length_out)  // no stuffing required
+    return;
+  
+  out_index  = packet_length_out + 6 - 2;  // last index before crc
+  in_index   = packet_length_in + 6 - 2;   // last index before crc
+  while (out_index != in_index)
   {
-    packet[s] = temp[s];
+    if (packet[in_index] == 0xFD && packet[in_index-1] == 0xFF && packet[in_index-2] == 0xFF)
+    {
+      packet[out_index--] = 0xFD; // byte stuffing
+      if (out_index != in_index)
+      {
+        packet[out_index--] = packet[in_index--]; // FD
+        packet[out_index--] = packet[in_index--]; // FF
+        packet[out_index--] = packet[in_index--]; // FF
+      }
+    }
+    else
+    {
+      packet[out_index--] = packet[in_index--];
+    }
   }
 
   packet[PKT_LENGTH_L] = DXL_LOBYTE(packet_length_out);
   packet[PKT_LENGTH_H] = DXL_HIBYTE(packet_length_out);
+
+  return;
 }
 
 void removeStuffing(uint8_t *packet)
@@ -472,6 +478,11 @@ void rxPacket2(int port_num)
         break;
       }
     }
+#if defined(__linux__) || defined(__APPLE__)
+    usleep(0);
+#elif defined(_WIN32) || defined(_WIN64)
+    Sleep(0);
+#endif
   }
   g_is_using[port_num] = False;
 
@@ -532,7 +543,12 @@ uint16_t pingGetModelNum2(int port_num, uint8_t id)
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, 10);
   packetData[port_num].rx_packet = (uint8_t *)realloc(packetData[port_num].rx_packet, 14);
-
+  if (packetData[port_num].tx_packet == NULL || packetData[port_num].rx_packet == NULL)
+  {
+    printf("[PingGetModeNum] memory allocation failed.. \n");
+    return COMM_TX_FAIL;
+  }
+  
   if (id >= BROADCAST_ID)
   {
     packetData[port_num].communication_result = COMM_NOT_AVAILABLE;
@@ -562,7 +578,11 @@ void broadcastPing2(int port_num)
   uint16_t wait_length = STATUS_LENGTH * MAX_ID;
 
   packetData[port_num].broadcast_ping_id_list = (uint8_t *)calloc(255, sizeof(uint8_t));
-
+  if (packetData[port_num].broadcast_ping_id_list == NULL)
+  {
+    printf("[BroadcastPing] memory allocation failed.. \n");
+    return;
+  }
 
   for (id = 0; id < 255; id++)
   {
@@ -571,6 +591,11 @@ void broadcastPing2(int port_num)
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, 10 * sizeof(uint8_t));
   packetData[port_num].rx_packet = (uint8_t *)realloc(packetData[port_num].rx_packet, STATUS_LENGTH * MAX_ID * sizeof(uint8_t));
+  if (packetData[port_num].tx_packet == NULL || packetData[port_num].rx_packet == NULL)
+  {
+    printf("[BroadcastPing] memory allocation failed.. \n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = BROADCAST_ID;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = 3;
@@ -680,6 +705,11 @@ uint8_t getBroadcastPingResult2(int port_num, int id)
 void action2(int port_num, uint8_t id)
 {
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, 10);
+  if (packetData[port_num].tx_packet == NULL)
+  {
+    printf("[Action] memory allocation failed..\n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = id;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = 3;
@@ -693,6 +723,11 @@ void reboot2(int port_num, uint8_t id)
 {
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, 10);
   packetData[port_num].rx_packet = (uint8_t *)realloc(packetData[port_num].rx_packet, 11);
+  if (packetData[port_num].tx_packet == NULL || packetData[port_num].rx_packet == NULL)
+  {
+    printf("[Reboot] memory allocation failed..\n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = id;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = 3;
@@ -702,11 +737,39 @@ void reboot2(int port_num, uint8_t id)
   txRxPacket2(port_num);
 }
 
+void clearMultiTurn2(int port_num, uint8_t id)
+{
+  packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, 15);
+  packetData[port_num].rx_packet = (uint8_t *)realloc(packetData[port_num].rx_packet, 11);
+  if (packetData[port_num].tx_packet == NULL || packetData[port_num].rx_packet == NULL)
+  {
+    printf("[ClearMultiTurn] memory allocation failed..\n");
+    return;
+  }
+  
+  packetData[port_num].tx_packet[PKT_ID] = id;
+  packetData[port_num].tx_packet[PKT_LENGTH_L] = 8;
+  packetData[port_num].tx_packet[PKT_LENGTH_H] = 0;
+  packetData[port_num].tx_packet[PKT_INSTRUCTION] = INST_CLEAR;
+  packetData[port_num].tx_packet[PKT_PARAMETER0] = 0x01;
+  packetData[port_num].tx_packet[PKT_PARAMETER0+1] = 0x44;
+  packetData[port_num].tx_packet[PKT_PARAMETER0+2] = 0x58;
+  packetData[port_num].tx_packet[PKT_PARAMETER0+3] = 0x4C;
+  packetData[port_num].tx_packet[PKT_PARAMETER0+4] = 0x22;
+
+  txRxPacket2(port_num);
+}
+
 void factoryReset2(int port_num, uint8_t id, uint8_t option)
 {
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, 11);
   packetData[port_num].rx_packet = (uint8_t *)realloc(packetData[port_num].rx_packet, 11);
-
+  if (packetData[port_num].tx_packet == NULL || packetData[port_num].rx_packet == NULL)
+  {
+    printf("[FactoryReset] memory allocation failed..\n");
+    return;
+  }
+  
   packetData[port_num].tx_packet[PKT_ID] = id;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = 4;
   packetData[port_num].tx_packet[PKT_LENGTH_H] = 0;
@@ -721,7 +784,12 @@ void readTx2(int port_num, uint8_t id, uint16_t address, uint16_t length)
   packetData[port_num].communication_result = COMM_TX_FAIL;
 
   packetData[port_num].tx_packet = (uint8_t *)malloc(14);
-
+  if (packetData[port_num].tx_packet == NULL)
+  {
+    printf("[ReadTx] memory allocation failed..\n");
+    return;
+  }
+  
   if (id >= BROADCAST_ID)
   {
     packetData[port_num].communication_result = COMM_NOT_AVAILABLE;
@@ -750,7 +818,12 @@ void readRx2(int port_num, uint16_t length)
 
   packetData[port_num].communication_result = COMM_TX_FAIL;
   packetData[port_num].rx_packet = (uint8_t *)realloc(packetData[port_num].rx_packet, RXPACKET_MAX_LEN);  //(length + 11 + (length/3));  // (length/3): consider stuffing
-
+  if (packetData[port_num].rx_packet == NULL)
+  {
+    printf("[ReadRx] memory allocation failed..\n");
+    return;
+  }
+  
   rxPacket2(port_num);
   if (packetData[port_num].communication_result == COMM_SUCCESS)
   {
@@ -771,7 +844,12 @@ void readTxRx2(int port_num, uint8_t id, uint16_t address, uint16_t length)
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, 14);
   packetData[port_num].rx_packet = (uint8_t *)realloc(packetData[port_num].rx_packet, RXPACKET_MAX_LEN);  //(length + 11 + (length/3));  // (length/3): consider stuffing
-
+  if (packetData[port_num].tx_packet == NULL || packetData[port_num].rx_packet == NULL)
+  {
+    printf("[ReadTxRx] memory allocation failed..\n");
+    return;
+  }
+  
   if (id >= BROADCAST_ID)
   {
     packetData[port_num].communication_result = COMM_NOT_AVAILABLE;
@@ -806,6 +884,11 @@ void read1ByteTx2(int port_num, uint8_t id, uint16_t address)
 uint8_t read1ByteRx2(int port_num)
 {
   packetData[port_num].data_read = (uint8_t *)realloc(packetData[port_num].data_read, 1 * sizeof(uint8_t));
+  if (packetData[port_num].data_read == NULL)
+  {
+    printf("[Read1ByteRx] memory allocation failed..\n");
+    return 0;
+  }
   packetData[port_num].data_read[0] = 0;
   readRx2(port_num, 1);
   if (packetData[port_num].communication_result == COMM_SUCCESS)
@@ -815,6 +898,11 @@ uint8_t read1ByteRx2(int port_num)
 uint8_t read1ByteTxRx2(int port_num, uint8_t id, uint16_t address)
 {
   packetData[port_num].data_read = (uint8_t *)realloc(packetData[port_num].data_read, 1 * sizeof(uint8_t));
+  if (packetData[port_num].data_read == NULL)
+  {
+    printf("[Read1ByteTxRx] memory allocation failed..\n");
+    return 0;
+  }
   packetData[port_num].data_read[0] = 0;
   readTxRx2(port_num, id, address, 1);
   if (packetData[port_num].communication_result == COMM_SUCCESS)
@@ -829,6 +917,11 @@ void read2ByteTx2(int port_num, uint8_t id, uint16_t address)
 uint16_t read2ByteRx2(int port_num)
 {
   packetData[port_num].data_read = (uint8_t *)realloc(packetData[port_num].data_read, 2 * sizeof(uint8_t));
+  if (packetData[port_num].data_read == NULL)
+  {
+    printf("[Read2ByteRx] memory allocation failed..\n");
+    return 0;
+  }
   packetData[port_num].data_read[0] = 0;
   packetData[port_num].data_read[1] = 0;
   readRx2(port_num, 2);
@@ -839,6 +932,11 @@ uint16_t read2ByteRx2(int port_num)
 uint16_t read2ByteTxRx2(int port_num, uint8_t id, uint16_t address)
 {
   packetData[port_num].data_read = (uint8_t *)realloc(packetData[port_num].data_read, 2 * sizeof(uint8_t));
+  if (packetData[port_num].data_read == NULL)
+  {
+    printf("[Read2ByteTxRx] memory allocation failed..\n");
+    return 0;
+  }
   packetData[port_num].data_read[0] = 0;
   packetData[port_num].data_read[1] = 0;
   readTxRx2(port_num, id, address, 2);
@@ -854,6 +952,11 @@ void read4ByteTx2(int port_num, uint8_t id, uint16_t address)
 uint32_t read4ByteRx2(int port_num)
 {
   packetData[port_num].data_read = (uint8_t *)realloc(packetData[port_num].data_read, 4 * sizeof(uint8_t));
+  if (packetData[port_num].data_read == NULL)
+  {
+    printf("[Read4ByteRx] memory allocation failed..\n");
+    return 0;
+  }
   packetData[port_num].data_read[0] = 0;
   packetData[port_num].data_read[1] = 0;
   packetData[port_num].data_read[2] = 0;
@@ -866,6 +969,11 @@ uint32_t read4ByteRx2(int port_num)
 uint32_t read4ByteTxRx2(int port_num, uint8_t id, uint16_t address)
 {
   packetData[port_num].data_read = (uint8_t *)realloc(packetData[port_num].data_read, 4 * sizeof(uint8_t));
+  if (packetData[port_num].data_read == NULL)
+  {
+    printf("[Read2ByteTxRx] memory allocation failed..\n");
+    return 0;
+  }
   packetData[port_num].data_read[0] = 0;
   packetData[port_num].data_read[1] = 0;
   packetData[port_num].data_read[2] = 0;
@@ -884,6 +992,11 @@ void writeTxOnly2(int port_num, uint8_t id, uint16_t address, uint16_t length)
   packetData[port_num].communication_result = COMM_TX_FAIL;
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, length + 12);
+  if (packetData[port_num].tx_packet == NULL)
+  {
+    printf("[WriteTxOnly] memory allocation failed..\n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = id;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = DXL_LOBYTE(length + 5);
@@ -909,7 +1022,12 @@ void writeTxRx2(int port_num, uint8_t id, uint16_t address, uint16_t length)
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, length + 12);
   packetData[port_num].rx_packet = (uint8_t *)realloc(packetData[port_num].rx_packet, 11);
-
+  if (packetData[port_num].tx_packet == NULL || packetData[port_num].rx_packet == NULL)
+  {
+    printf("[WriteTxRx] memory allocation failed..\n");
+    return;
+  }
+  
   packetData[port_num].tx_packet[PKT_ID] = id;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = DXL_LOBYTE(length + 5);
   packetData[port_num].tx_packet[PKT_LENGTH_H] = DXL_HIBYTE(length + 5);
@@ -928,12 +1046,22 @@ void writeTxRx2(int port_num, uint8_t id, uint16_t address, uint16_t length)
 void write1ByteTxOnly2(int port_num, uint8_t id, uint16_t address, uint8_t data)
 {
   packetData[port_num].data_write = (uint8_t *)realloc(packetData[port_num].data_write, 1 * sizeof(uint8_t));
+  if (packetData[port_num].data_write == NULL)
+  {
+    printf("[Write1ByteTxOnly] memory allocation failed..\n");
+    return;
+  }
   packetData[port_num].data_write[0] = data;
   writeTxOnly2(port_num, id, address, 1);
 }
 void write1ByteTxRx2(int port_num, uint8_t id, uint16_t address, uint8_t data)
 {
   packetData[port_num].data_write = (uint8_t *)realloc(packetData[port_num].data_write, 1 * sizeof(uint8_t));
+  if (packetData[port_num].data_write == NULL)
+  {
+    printf("[Write1ByteTxRx] memory allocation failed..\n");
+    return;
+  }
   packetData[port_num].data_write[0] = data;
   writeTxRx2(port_num, id, address, 1);
 }
@@ -941,6 +1069,11 @@ void write1ByteTxRx2(int port_num, uint8_t id, uint16_t address, uint8_t data)
 void write2ByteTxOnly2(int port_num, uint8_t id, uint16_t address, uint16_t data)
 {
   packetData[port_num].data_write = (uint8_t *)realloc(packetData[port_num].data_write, 2 * sizeof(uint8_t));
+  if (packetData[port_num].data_write == NULL)
+  {
+    printf("[Write2ByteTxOnly] memory allocation failed..\n");
+    return;
+  }
   packetData[port_num].data_write[0] = DXL_LOBYTE(data);
   packetData[port_num].data_write[1] = DXL_HIBYTE(data);
   writeTxOnly2(port_num, id, address, 2);
@@ -948,6 +1081,11 @@ void write2ByteTxOnly2(int port_num, uint8_t id, uint16_t address, uint16_t data
 void write2ByteTxRx2(int port_num, uint8_t id, uint16_t address, uint16_t data)
 {
   packetData[port_num].data_write = (uint8_t *)realloc(packetData[port_num].data_write, 2 * sizeof(uint8_t));
+  if (packetData[port_num].data_write == NULL)
+  {
+    printf("[Write2ByteTxRx] memory allocation failed..\n");
+    return;
+  }
   packetData[port_num].data_write[0] = DXL_LOBYTE(data);
   packetData[port_num].data_write[1] = DXL_HIBYTE(data);
   writeTxRx2(port_num, id, address, 2);
@@ -956,6 +1094,11 @@ void write2ByteTxRx2(int port_num, uint8_t id, uint16_t address, uint16_t data)
 void write4ByteTxOnly2(int port_num, uint8_t id, uint16_t address, uint32_t data)
 {
   packetData[port_num].data_write = (uint8_t *)realloc(packetData[port_num].data_write, 4 * sizeof(uint8_t));
+  if (packetData[port_num].data_write == NULL)
+  {
+    printf("[Write4ByteTxOnly] memory allocation failed..\n");
+    return;
+  }
   packetData[port_num].data_write[0] = DXL_LOBYTE(DXL_LOWORD(data));
   packetData[port_num].data_write[1] = DXL_HIBYTE(DXL_LOWORD(data));
   packetData[port_num].data_write[2] = DXL_LOBYTE(DXL_HIWORD(data));
@@ -965,6 +1108,11 @@ void write4ByteTxOnly2(int port_num, uint8_t id, uint16_t address, uint32_t data
 void write4ByteTxRx2(int port_num, uint8_t id, uint16_t address, uint32_t data)
 {
   packetData[port_num].data_write = (uint8_t *)realloc(packetData[port_num].data_write, 4 * sizeof(uint8_t));
+  if (packetData[port_num].data_write == NULL)
+  {
+    printf("[Write4ByteTxRx] memory allocation failed..\n");
+    return;
+  }
   packetData[port_num].data_write[0] = DXL_LOBYTE(DXL_LOWORD(data));
   packetData[port_num].data_write[1] = DXL_HIBYTE(DXL_LOWORD(data));
   packetData[port_num].data_write[2] = DXL_LOBYTE(DXL_HIWORD(data));
@@ -979,6 +1127,11 @@ void regWriteTxOnly2(int port_num, uint8_t id, uint16_t address, uint16_t length
   packetData[port_num].communication_result = COMM_TX_FAIL;
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, length + 12);
+  if (packetData[port_num].tx_packet == NULL)
+  {
+    printf("[RegWriteTxOnly] memory allocation failed..\n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = id;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = DXL_LOBYTE(length + 5);
@@ -1004,6 +1157,11 @@ void regWriteTxRx2(int port_num, uint8_t id, uint16_t address, uint16_t length)
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, length + 12);
   packetData[port_num].rx_packet = (uint8_t *)realloc(packetData[port_num].rx_packet, 11);
+  if (packetData[port_num].tx_packet == NULL || packetData[port_num].rx_packet == NULL)
+  {
+    printf("[RegWriteTxRx] memory allocation failed..\n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = id;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = DXL_LOBYTE(length + 5);
@@ -1028,6 +1186,11 @@ void syncReadTx2(int port_num, uint16_t start_address, uint16_t data_length, uin
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, param_length + 14);
   // 14: HEADER0 HEADER1 HEADER2 RESERVED ID LEN_L LEN_H INST START_ADDR_L START_ADDR_H DATA_LEN_L DATA_LEN_H CRC16_L CRC16_H
+  if (packetData[port_num].tx_packet == NULL)
+  {
+    printf("[SyncReadTx] memory allocation failed..\n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = BROADCAST_ID;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = DXL_LOBYTE(param_length + 7); // 7: INST START_ADDR_L START_ADDR_H DATA_LEN_L DATA_LEN_H CRC16_L CRC16_H
@@ -1057,6 +1220,11 @@ void syncWriteTxOnly2(int port_num, uint16_t start_address, uint16_t data_length
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, param_length + 14);
   // 14: HEADER0 HEADER1 HEADER2 RESERVED ID LEN_L LEN_H INST START_ADDR_L START_ADDR_H DATA_LEN_L DATA_LEN_H CRC16_L CRC16_H
+  if (packetData[port_num].tx_packet == NULL)
+  {
+    printf("[SyncWriteTxOnly] memory allocation failed..\n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = BROADCAST_ID;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = DXL_LOBYTE(param_length + 7); // 7: INST START_ADDR_L START_ADDR_H DATA_LEN_L DATA_LEN_H CRC16_L CRC16_H
@@ -1084,6 +1252,11 @@ void bulkReadTx2(int port_num, uint16_t param_length)
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, param_length + 10);
   // 10: HEADER0 HEADER1 HEADER2 RESERVED ID LEN_L LEN_H INST CRC16_L CRC16_H
+  if (packetData[port_num].tx_packet == NULL)
+  {
+    printf("[BulkReadTx] memory allocation failed..\n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = BROADCAST_ID;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = DXL_LOBYTE(param_length + 3); // 3: INST CRC16_L CRC16_H
@@ -1115,6 +1288,11 @@ void bulkWriteTxOnly2(int port_num, uint16_t param_length)
 
   packetData[port_num].tx_packet = (uint8_t *)realloc(packetData[port_num].tx_packet, param_length + 10);
   // 10: HEADER0 HEADER1 HEADER2 RESERVED ID LEN_L LEN_H INST CRC16_L CRC16_H
+  if (packetData[port_num].tx_packet == NULL)
+  {
+    printf("[BulkWriteTxOnly] memory allocation failed..\n");
+    return;
+  }
 
   packetData[port_num].tx_packet[PKT_ID] = BROADCAST_ID;
   packetData[port_num].tx_packet[PKT_LENGTH_L] = DXL_LOBYTE(param_length + 3); // 3: INST CRC16_L CRC16_H

@@ -44,9 +44,7 @@ interface LibFunction extends Library
   // PacketHandler functions
   public void    packetHandler           ();
 
-  public void    printTxRxResult         (int protocol_version, int result);
   public String  getTxRxResult           (int protocol_version, int result);
-  public void    printRxPacketError      (int protocol_version, byte error);
   public String  getRxPacketError        (int protocol_version, byte error);
 
   public int     getLastTxRxResult       (int port_num, int protocol_version);
@@ -71,6 +69,8 @@ interface LibFunction extends Library
 
   public void    reboot                  (int port_num, int protocol_version, byte id);
 
+  public void    clearMultiTurn          (int port_num, int protocol_version, byte id);
+  
   public void    factoryReset            (int port_num, int protocol_version, byte id, byte option);
 
   public void    readTx                  (int port_num, int protocol_version, byte id, short address, short length);
@@ -225,18 +225,11 @@ public class Dynamixel
     libFunction.packetHandler();
   }
 
-  public void printTxRxResult(int protocol_version, int result)
-  {
-    libFunction.printTxRxResult(protocol_version, result);
-  }
   public String getTxRxResult(int protocol_version, int result)
   {
     return libFunction.getTxRxResult(protocol_version, result);
   }
-  public void printRxPacketError(int protocol_version, byte error)
-  {
-    libFunction.printRxPacketError(protocol_version, error);
-  }
+
   public String getRxPacketError(int protocol_version, byte error)
   {
     return libFunction.getRxPacketError(protocol_version, error);
@@ -299,6 +292,11 @@ public class Dynamixel
     libFunction.reboot(port_num, protocol_version, id);
   }
 
+  public void clearMultiTurn(int port_num, int protocol_version, byte id)
+  {
+    libFunction.clearMultiTurn(port_num, protocol_version, id);
+  }
+  
   public void factoryReset(int port_num, int protocol_version, byte id, byte option)
   {
     libFunction.factoryReset(port_num, protocol_version, id, option);

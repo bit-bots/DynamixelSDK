@@ -27,9 +27,7 @@ WINDECLSPEC void        addStuffing         (uint8_t *packet);
 WINDECLSPEC void        removeStuffing      (uint8_t *packet);
 
 WINDECLSPEC const char *getTxRxResult2      (int result);
-DEPRECATED WINDECLSPEC void        printTxRxResult2    (int result);
 WINDECLSPEC const char *getRxPacketError2       (uint8_t error);
-DEPRECATED WINDECLSPEC void        printRxPacketError2     (uint8_t error);
 
 WINDECLSPEC int         getLastTxRxResult2  (int port_num);
 WINDECLSPEC uint8_t     getLastRxPacketError2   (int port_num);
@@ -50,6 +48,7 @@ WINDECLSPEC uint8_t     getBroadcastPingResult2 (int port_num, int id);
 
 WINDECLSPEC void        action2             (int port_num, uint8_t id);
 WINDECLSPEC void        reboot2             (int port_num, uint8_t id);
+WINDECLSPEC void        clearMultiTurn2     (int port_num, uint8_t id);
 WINDECLSPEC void        factoryReset2       (int port_num, uint8_t id, uint8_t option);
 
 WINDECLSPEC void        readTx2             (int port_num, uint8_t id, uint16_t address, uint16_t length);
