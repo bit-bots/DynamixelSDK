@@ -1,25 +1,36 @@
 # Dynamixel SDK Release Notes
 
+3.7.21 (2019-09-06)
+-------------------
+* Fixed buffer overflow bug (rxpacket size)
+* Fixed typo in the package.xml and header files
+
+3.7.11 (2019-08-19)
+-------------------
+* Updated C lib and DLL file
+* Changed C# / win32 / protocol_combined output path
+* Fixed "protocol_combined" example bug
+* Fixed typo in bulk_read_write.py
+
 3.7.0 (2019-01-03)
 ------------------
-* added clear instruction [#269](https://github.com/ROBOTIS-GIT/DynamixelSDK/issues/269)
-* removed busy waiting for rxPacket()
-* fixed addStuffing() function (reduced stack memory usage)
-* fixed memory issues [#268](https://github.com/ROBOTIS-GIT/DynamixelSDK/issues/268)
-* fixed the broadcast ping bug in dxl_monitor
+* Added clear instruction [#269](https://github.com/ROBOTIS-GIT/DynamixelSDK/issues/269)
+* Removed busy waiting for rxPacket()
+* Fixed addStuffing() function (reduced stack memory usage)
+* Fixed memory issues [#268](https://github.com/ROBOTIS-GIT/DynamixelSDK/issues/268)
+* Fixed the broadcast ping bug in dxl_monitor
 
 3.6.2 (2018-07-17)
 ------------------
-* added python modules for ROS to ros folder
-* moved cpp library files for ROS to ros folder 
-* created an ROS package separately [#187](https://github.com/ROBOTIS-GIT/DynamixelSDK/issues/187)
-* modified the e-Manual address to emanual.robotis.com
+* Added python modules for ROS to ros folder
+* Moved cpp library files for ROS to ros folder
+* Created an ROS package separately `#187 <https://github.com/ROBOTIS-GIT/DynamixelSDK/issues/187>`_
+* Modified the e-Manual address to emanual.robotis.com
 
 3.6.1 (2018-06-14)
 ------------------
-* removed printTxRxResult(), printRxPacketError() [#193](https://github.com/ROBOTIS-GIT/DynamixelSDK/issues/193)
-* removed cache files
-* merge pull request [#195](https://github.com/ROBOTIS-GIT/DynamixelSDK/issues/195)
+* Removed printTxRxResult(), printRxPacketError() `#193 <https://github.com/ROBOTIS-GIT/DynamixelSDK/issues/193>`_
+* Removed cache files
 
 3.6.0 (2018-03-16)
 ------------------
