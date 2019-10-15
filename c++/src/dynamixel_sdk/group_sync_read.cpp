@@ -139,10 +139,8 @@ int GroupSyncRead::rxPacket()
     uint8_t id = id_list_[i];
 
     result = ph_->readRx(port_, id, data_length_, data_list_[id], error_list_[id]);
-    if (result != COMM_SUCCESS){
-      ROS_ERROR("No status from id: %d", id);
+    if (result != COMM_SUCCESS)
       return result;
-    }
   }
 
   if (result == COMM_SUCCESS)
@@ -197,19 +195,6 @@ uint32_t GroupSyncRead::getData(uint8_t id, uint16_t address, uint16_t data_leng
       return 0;
   }
 }
-
-bool GroupSyncRead::getMultipleWordsData(uint8_t id, uint16_t address, uint16_t data_length, std::vector<uint8_t> *data){
-    if (isAvailable(id, address, data_length) == false)
-        return false;
-
-    data->clear();
-    for(int i = 0; i < data_length;i++){ //todo maybe memcpy for performance
-        data->push_back(data_list_[id][address - start_address_ + i]);
-    }
-
-    return true;
-}
-
 
 bool GroupSyncRead::getError(uint8_t id, uint8_t* error)
 {
