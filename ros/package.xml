@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version='1.0' encoding='utf-8'?>
 <package format="2">
   <name>dynamixel_sdk</name>
   <version>3.7.21</version>
@@ -15,7 +15,7 @@
   <url type="emanual">http://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_sdk/overview/</url>
   <url type="repository">https://github.com/ROBOTIS-GIT/DynamixelSDK</url>
   <url type="bugtracker">https://github.com/ROBOTIS-GIT/DynamixelSDK/issues</url>
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>roscpp</depend>
   <depend>rospy</depend>
   <export>
@@ -23,5 +23,6 @@
       <status>unknown</status>
       <language>c++</language>
     </bitbots_documentation>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

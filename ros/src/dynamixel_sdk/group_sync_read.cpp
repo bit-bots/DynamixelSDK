@@ -140,7 +140,7 @@ int GroupSyncRead::rxPacket()
 
     result = ph_->readRx(port_, id, data_length_, data_list_[id], error_list_[id]);
     if (result != COMM_SUCCESS){
-      ROS_ERROR("No status from id: %d", id);
+      std::printf("No status from id: %d", id);
       return result;
     }
   }
