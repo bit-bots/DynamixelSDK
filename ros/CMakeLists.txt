@@ -78,7 +78,8 @@ install(PROGRAMS src/${PROJECT_NAME}/group_bulk_read.py
 ament_export_dependencies(rclpy)
 ament_export_dependencies(ament_cmake)
 ament_export_dependencies(rclcpp)
-ament_export_include_directories(${INCLUDE_DIRS})
+ament_export_include_directories(include)
+ament_export_libraries(dynamixel_sdk)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION lib/${PROJECT_NAME})
 
