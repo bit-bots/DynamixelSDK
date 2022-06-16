@@ -17,6 +17,7 @@
 /* Author: zerom, Ryu Woon Jung (Leon) */
 
 #include <algorithm>
+#include <cstdio>
 
 #if defined(__linux__)
 #include "group_sync_read.h"
