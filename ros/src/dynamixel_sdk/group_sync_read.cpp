@@ -17,7 +17,7 @@
 /* Author: zerom, Ryu Woon Jung (Leon) */
 
 #include <algorithm>
-#include <cstdio>
+#include <iostream>
 
 #if defined(__linux__)
 #include "group_sync_read.h"
@@ -141,7 +141,7 @@ int GroupSyncRead::rxPacket()
 
     result = ph_->readRx(port_, id, data_length_, data_list_[id], error_list_[id]);
     if (result != COMM_SUCCESS){
-      std::printf("No status from id: %d", id);
+      std::cerr << "No status from id: " << int(id) << std::endl;
       return result;
     }
   }
